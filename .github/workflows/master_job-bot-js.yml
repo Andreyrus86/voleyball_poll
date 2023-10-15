@@ -1,0 +1,29 @@
+name: Linux Container Node Workflow
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: azure/docker-login@v1
+        with:
+          login-server: sb3cr.azurecr.io
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - run: |
+          docker build . -t sb3cr.azurecr.io/sb3-bot:${{ github.sha }}
+          docker push sb3cr.azurecr.io/sb3-bot:${{ github.sha }}     
+
+      - uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'sb3-bot'
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+          images: 'sb3cr.azurecr.io/sb3-bot:${{ github.sha }}'
