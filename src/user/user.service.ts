@@ -11,8 +11,17 @@ export class UserService {
 
   insertOrIgnorePollChoice(
       userLogin: string,
+      userName: string,
       pollId: number,
   ): Promise<any> {
-    return this.userRepository.insertOrIgnorePollChoice(userLogin, pollId);
+    return this.userRepository.insertOrIgnorePollChoice(userLogin, userName, pollId);
+  }
+
+  getPlayers(pollId: number): Promise<any> {
+    return this.userRepository.getPlayers(pollId);
+  }
+
+  async isUserAlreadyVoted(userLogin: string, pollId: number) {
+    return this.userRepository.isUserAlreadyVoted(userLogin, pollId);
   }
 }

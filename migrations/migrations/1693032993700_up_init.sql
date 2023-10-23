@@ -9,6 +9,7 @@ create table if not exists poll_answers
 (
     applied_at timestamp,
     user_login varchar,
+    user_name varchar,
     poll_id int
         constraint foreign_poll_key
         references polls,
