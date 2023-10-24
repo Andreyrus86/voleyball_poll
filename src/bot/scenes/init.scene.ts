@@ -8,8 +8,6 @@ export class InitScene {
   public static readonly SCENE_ID = 'INIT_TYPE_SCENE_ID';
   //public static CHANNEL_ID = -4028704815;
   public static CHANNEL_ID = -1001936026117;
-  protected stepsWaiting: number = 10;
-  protected lastPublishedPollId: number;
   protected lastPublishedPollMessageId: number;
   protected initialized: boolean = false;
 
@@ -35,18 +33,20 @@ export class InitScene {
 
     const pollId = ctx.match[1];
     console.debug(pollId);
-    if (this.lastPublishedPollId === undefined) {
-      return;
+    let username = user.username;
+    if (user.username === undefined || user.username === null) {
+      username = user.first_name
     }
-
-    const isUserAlreadyVoted = await this.userService.isUserAlreadyVoted(user.username, pollId);
+    const isUserAlreadyVoted = await this.userService.isUserAlreadyVoted(username, pollId);
     console.debug(isUserAlreadyVoted);
     if (isUserAlreadyVoted['cnt']) {
       return;
     }
 
-    await this.userService.insertOrIgnorePollChoice(user.username, user.first_name, this.lastPublishedPollId);
-    await this.refreshPollView(ctx.update.callback_query.message.chat.id);
+    await this.userService.insertOrIgnorePollChoice(username, user.first_name, pollId);
+    let poll = await this.userService.getPoll(pollId);
+    console.debug(poll);
+    await this.refreshPollView(ctx.update.callback_query.message.chat.id, pollId, poll[0]['telegram_message_id']);
   }
 
   @SceneLeave()
@@ -55,9 +55,9 @@ export class InitScene {
     //await ctx.deleteMessage();
   }
 
-  private prepareButtons() {
+  private prepareButtons(pollId: number) {
     const buttons = [];
-    buttons.push([Markup.button.callback('Играю!', 'NextStep' + this.lastPublishedPollId)]);
+    buttons.push([Markup.button.callback('Играю!', 'NextStep' + pollId)]);
 
     return buttons;
   }
@@ -82,7 +82,7 @@ export class InitScene {
       const dayOfWeekDigit = new Date().getDay();
       const currentHours = new Date().getHours();
       //console.debug(dayOfWeekDigit, currentHours);
-      if (dayOfWeekDigit != 1) {
+      if (dayOfWeekDigit != 2) {
         continue;
       }
 
@@ -96,15 +96,15 @@ export class InitScene {
         continue;
       }
 
-      this.lastPublishedPollId = await this.preparePoll();
-      const pollMessage = await this.showPoll(ctx.update.message.chat.id);
+      let pollId = await this.preparePoll();
+      const pollMessage = await this.showPoll(ctx.update.message.chat.id, pollId);
       this.lastPublishedPollMessageId = pollMessage.message_id;
-      await this.pollService.setMessageId(this.lastPublishedPollMessageId, this.lastPublishedPollId);
+      await this.pollService.setMessageId(this.lastPublishedPollMessageId, pollId);
     }
   }
 
-  async showPoll(chatId: number) {
-    const buttons = this.prepareButtons();
+  async showPoll(chatId: number, pollId: number) {
+    const buttons = this.prepareButtons(pollId);
 
     return await this.bot.telegram.sendMessage(chatId,`Кто готов играть в среду с 18:00 до 20:00? Максимум 6 человек.
 
@@ -121,8 +121,8 @@ export class InitScene {
     return this.pollService.insertOrIgnorePoll();
   }
 
-  private async refreshPollView(chatId: number ) {
-    const players = await this.userService.getPlayers(this.lastPublishedPollId);
+  private async refreshPollView(chatId: number, pollId: number, messageId: number) {
+    const players = await this.userService.getPlayers(pollId);
     console.debug(players);
     let playerNames = '';
     let index = 0;
@@ -130,8 +130,8 @@ export class InitScene {
       index++;
       playerNames += index + '. @' + userLogin.user_login + ' (' + userLogin.user_name + ') ' +  userLogin.applied_at + ' \n';
     });
-    const buttons = this.prepareButtons();
-    await this.bot.telegram.editMessageText(chatId, this.lastPublishedPollMessageId, null, `Кто готов играть в среду с 18:00 до 20:00? Максимум 6 человек.
+    const buttons = this.prepareButtons(pollId);
+    await this.bot.telegram.editMessageText(chatId, messageId, null, `Кто готов играть в среду с 18:00 до 20:00? Максимум 6 человек.
 
 Кто 7-й, 8-й и т.д - Вы попали в резерв в порядке очереди. Если кто-то из отметившихся раньше не сможет прийти, то этот человек вас лично оповестит и вы сможете заменить его.
 

@@ -24,4 +24,8 @@ export class UserService {
   async isUserAlreadyVoted(userLogin: string, pollId: number) {
     return this.userRepository.isUserAlreadyVoted(userLogin, pollId);
   }
+
+  getPoll(pollId: number) {
+    return this.userRepository.getPoll(pollId);
+  }
 }

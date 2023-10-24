@@ -153,4 +153,28 @@ export class UserRepository {
                 });
         });
     }
+
+    getPoll(pollId: number) {
+        return this.connectionPool.connect().then((client) => {
+            return client
+                .query(
+                    `
+                        SELECT *
+                        FROM polls                 
+                        WHERE id = $1
+                    `,
+                    [pollId]
+                )
+                .then((res) => {
+                    client.release();
+
+                    return res.rows;
+                })
+                .catch((err) => {
+                    client.release();
+
+                    return undefined;
+                });
+        });
+    }
 }
