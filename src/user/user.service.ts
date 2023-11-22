@@ -28,4 +28,8 @@ export class UserService {
   getPoll(pollId: number) {
     return this.userRepository.getPoll(pollId);
   }
+
+  async getLastPoll() {
+    return this.userRepository.getLastPoll();
+  }
 }

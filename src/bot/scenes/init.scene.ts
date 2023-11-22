@@ -56,6 +56,8 @@ export class InitScene {
   }
 
   private prepareButtons(pollId: number) {
+    return [];
+
     const buttons = [];
     buttons.push([Markup.button.callback('Играю!', 'NextStep' + pollId)]);
 
@@ -72,22 +74,33 @@ export class InitScene {
 
   private async goLoop(ctx) {
     if (this.initialized) {
+      await this.makeVote(ctx);
+
       return;
     }
     this.initialized = true;
+
+    const hour = randomNumber(12, 12);
+    const minutes = randomNumber(1, 20);
 
     while (true) {
       await this.makeSleep();
 
       const dayOfWeekDigit = new Date().getDay();
       const currentHours = new Date().getHours();
-      //console.debug(dayOfWeekDigit, currentHours);
-      if (dayOfWeekDigit != 2) {
+      const currentMinutes = new Date().getMinutes();
+      console.debug(dayOfWeekDigit, currentHours, currentMinutes, "VOTE STARTS", hour, minutes);
+
+      if (dayOfWeekDigit != 1 && dayOfWeekDigit != 3) {
         continue;
       }
 
-      if (currentHours < 9 || currentHours > 15) {
-        //continue;
+      if (currentHours < hour) {
+        continue;
+      }
+
+      if (currentMinutes < minutes) {
+        continue;
       }
 
       const totalPolls = await this.pollService.isAlreadyPublished();
@@ -106,15 +119,19 @@ export class InitScene {
   async showPoll(chatId: number, pollId: number) {
     const buttons = this.prepareButtons(pollId);
 
-    return await this.bot.telegram.sendMessage(chatId,`Кто готов играть в среду с 18:00 до 20:00? Максимум 6 человек.
-
-Кто 7-й, 8-й и т.д - Вы попали в резерв в порядке очереди. Если кто-то из отметившихся раньше не сможет прийти, то этот человек вас лично оповестит и вы сможете заменить его.
-
-Чтобы начать взаимодействие с ботом, вначале нажмите /start, а затем голосуйте. 
+    return await this.bot.telegram.sendMessage(chatId,`${this.getPollMainMessage()}
 `, {
       parse_mode: 'HTML',
       ...Markup.inlineKeyboard(buttons),
     });
+  }
+
+  private getPollMainMessage() {
+    return `Кто готов играть в пятницу с 18:30 до 20:30? Максимум 6 человек.
+
+Кто 7-й, 8-й и т.д - Вы попали в резерв в порядке очереди. Если кто-то из отметившихся раньше не сможет прийти, то этот человек вас лично оповестит и вы сможете заменить его.
+
+Чтобы проголосовать нажмите /start`;
   }
 
   private async preparePoll(): Promise<any> {
@@ -131,16 +148,36 @@ export class InitScene {
       playerNames += index + '. @' + userLogin.user_login + ' (' + userLogin.user_name + ') ' +  userLogin.applied_at + ' \n';
     });
     const buttons = this.prepareButtons(pollId);
-    await this.bot.telegram.editMessageText(chatId, messageId, null, `Кто готов играть в среду с 18:00 до 20:00? Максимум 6 человек.
-
-Кто 7-й, 8-й и т.д - Вы попали в резерв в порядке очереди. Если кто-то из отметившихся раньше не сможет прийти, то этот человек вас лично оповестит и вы сможете заменить его.
-
-Чтобы начать взаимодействие с ботом, вначале нажмите /start, а затем голосуйте. 
-
+    await this.bot.telegram.editMessageText(chatId, messageId, null, this.getPollMainMessage() + `
+    
 Проголосовали в порядке очереди:
 ` + playerNames, {
       parse_mode: 'HTML',
       ...Markup.inlineKeyboard(buttons),
     })
   }
+
+  private async makeVote(ctx) {
+    let lastPoll = await this.userService.getLastPoll();
+    const user = ctx.update.message.from;
+    const pollId = lastPoll['id'];
+    let username = user.username;
+    if (user.username === undefined || user.username === null) {
+      username = user.first_name
+    }
+    const isUserAlreadyVoted = await this.userService.isUserAlreadyVoted(username, pollId);
+    console.debug(isUserAlreadyVoted);
+    if (isUserAlreadyVoted['cnt']) {
+      return;
+    }
+
+    await this.userService.insertOrIgnorePollChoice(username, user.first_name, pollId);
+    let poll = await this.userService.getPoll(pollId);
+    console.debug(poll);
+    await this.refreshPollView(ctx.update.message.chat.id, pollId, poll[0]['telegram_message_id']);
+  }
+}
+
+function randomNumber(min, max) {
+  return Math.floor(Math.random() * (max - min) + min);
 }

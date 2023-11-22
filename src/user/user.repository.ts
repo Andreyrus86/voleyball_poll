@@ -88,7 +88,7 @@ export class UserRepository {
                 `
                         SELECT count(p.*) as cnt 
                         FROM polls AS p
-                        WHERE DATE(p.created_at) >= CURRENT_DATE - 2
+                        WHERE DATE(p.created_at) >= CURRENT_DATE
                     `,
             )
             .then((res) => {
@@ -110,7 +110,7 @@ export class UserRepository {
                 .query(
                     `
                         SELECT user_login, user_name,
-                               TO_CHAR(applied_at, 'YYYY-MM-DD HH:MI:SS') as applied_at
+                               TO_CHAR(applied_at, 'YYYY-MM-DD HH24:MI:SS') as applied_at
                         FROM poll_answers                 
                         WHERE poll_id = $1
                         ORDER BY applied_at ASC
@@ -169,6 +169,30 @@ export class UserRepository {
                     client.release();
 
                     return res.rows;
+                })
+                .catch((err) => {
+                    client.release();
+
+                    return undefined;
+                });
+        });
+    }
+
+    getLastPoll() {
+        return this.connectionPool.connect().then((client) => {
+            return client
+                .query(
+                    `
+                        SELECT *
+                        FROM polls                 
+                        ORDER BY id DESC
+                        LIMIT 1
+                    `
+                )
+                .then((res) => {
+                    client.release();
+
+                    return res.rows[0];
                 })
                 .catch((err) => {
                     client.release();
