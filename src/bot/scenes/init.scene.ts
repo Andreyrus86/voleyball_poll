@@ -80,8 +80,8 @@ export class InitScene {
     }
     this.initialized = true;
 
-    const hour = randomNumber(12, 12);
-    const minutes = randomNumber(1, 20);
+    const hour = randomNumber(13, 13);
+    const minutes = randomNumber(1, 3);
 
     while (true) {
       await this.makeSleep();
