@@ -80,8 +80,8 @@ export class InitScene {
     }
     this.initialized = true;
 
-    const hour = randomNumber(13, 13);
-    const minutes = randomNumber(1, 3);
+    const hour = randomNumber(10, 10);
+    const minutes = randomNumber(15, 15);
 
     while (true) {
       await this.makeSleep();
@@ -91,7 +91,7 @@ export class InitScene {
       const currentMinutes = new Date().getMinutes();
       console.debug(dayOfWeekDigit, currentHours, currentMinutes, "VOTE STARTS", hour, minutes);
 
-      if (dayOfWeekDigit != 1 && dayOfWeekDigit != 3) {
+      if (dayOfWeekDigit != 2 && dayOfWeekDigit != 4) {
         continue;
       }
 
@@ -127,12 +127,20 @@ export class InitScene {
   }
 
   private getPollMainMessage() {
-    return `Кто готов играть в пятницу с 18:30 до 20:30? Максимум 6 человек.
+    return `Кто готов играть в пятницу с 19:30 до 21:30? Максимум 6 человек. Или 8+ - на 2 площадки.
 
-Кто 7-й, 8-й и т.д - Вы попали в резерв в порядке очереди. Если кто-то из отметившихся раньше не сможет прийти, то этот человек вас лично оповестит и вы сможете заменить его.
+Кто 7-й - Вы попали в резерв в порядке очереди. Если кто-то из отметившихся раньше не сможет прийти, то этот человек вас лично оповестит и вы сможете заменить его.
 
 Чтобы проголосовать нажмите /start`;
   }
+
+/*  private getPollMainMessage() {
+    return `Кто готов играть в субботу с 09:00 до 11:00? Количество человек меньше 6 (включительно) или больше 8 (включительно)
+
+Кто последний 7-й - Вы попали в резерв в порядке очереди. Если кто-то из отметившихся раньше не сможет прийти, то этот человек вас лично оповестит и вы сможете заменить его.
+
+Чтобы проголосовать нажмите /start`;
+  }*/
 
   private async preparePoll(): Promise<any> {
     return this.pollService.insertOrIgnorePoll();
